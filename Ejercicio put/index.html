@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" ></script>
+
+</head>
+<body>
+    <div class="container">
+    <h3 class="display-3">Ejercicio PUT Peliculas</h3>
+    <form action="">
+        <input type="text" placeholder="Titulo" name="titulo" id="titulo">
+        <input type="text" placeholder="Año" name="año" id="año">
+        <input type="text" placeholder="Genero" name="genero" id="genero">
+        <button id="act" type="button"> Agregar </button>
+    </form>
+<br>
+<div class="clear"></div>
+    <div>
+        <h4> Lista de Peliculas </h4>
+        <ul id="lista-peliculas" class="list-group">
+
+        </ul>
+    </div>
+
+</div>
+</body>
+<div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editModalLabel">Editar Pelicula</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <input type="text" id="tituloEdit" name="tituloEdit" placeholder="Titulo">
+            <input type="text" name="añoEdit" id="añoEdit" placeholder="Año">
+            <input type="text" name="generoEdit" id="generoEdit" placeholder="Genero">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="SaveEdit">Guardar Cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+    $(document).ready( function(){
+        getPelicula();
+        $("#act").on("click", function(event){
+            console.log(event);
+            var Pelicula = { };
+            Pelicula.titulo = $("#titulo").val();
+            Pelicula.año = $("#año").val();
+            Pelicula.genero = $("#genero").val();
+            sendPOSTRequest(Pelicula);
+        });
+
+        $('#editModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var titulo = button.data('titulo');
+            var año = button.data('año');
+            var genero = button.data('genero');
+            var modal = $(this);
+            modal.find('.modal-title').text('Edicion Pelicula: ' + titulo);
+            modal.find('.modal-body input#tituloEdit').val(titulo);
+            modal.find('.modal-body input#añoEdit').val(año);
+            modal.find('.modal-body input#generoEdit').val(genero);
+            modal.find('.modal-footer button#SaveEdit').unbind().on('click', (event)=>{
+                console.log("Guardando Pelicula: " + titulo);
+                var tituloNew =  modal.find('.modal-body input#tituloEdit').val();
+                var añoNew =  modal.find('.modal-body input#añoEdit').val();
+                var generoNew =  modal.find('.modal-body input#cgeneroEdit').val();
+                var Pelicula = {'tituloOld' : titulo, 'tituloNew' : tituloNew , 'añoNew' : añoNew , 'generoNew' : generoNew };
+                console.log(Pelicula);
+                sendPUTRequest(Pelicula);
+                modal.modal('hide');
+            });
+        });
+
+    });
+
+    function getPelicula(){
+        $.get("http://localhost:3000/peliculas", function(data){
+            var listHTML = "";
+            console.log(data);
+            data.forEach(Pelicula => {
+                listHTML += "<li class='list-group-item'>" + 
+                " <button type='button' class='delete btn btn-danger btn-sm' data-titulo='"+ Pelicula.titulo +"'> <i class='material-icons'>delete</i> </button> " + 
+                " <button type='button' class='edit btn btn-warning btn-sm' data-año='"+ Pelicula.titulo +"' data-nombre='"+Pelicula.titulo+"' data-toggle='modal' data-target='#editModal'> <i class='material-icons'>create</i> </button> " +
+                " | Titulo : " + Pelicula.titulo + " | Año: " + Pelicula.año + " | Genero: " + Pelicula.genero + " </li>";
+            });
+            $("#lista-peliculas").html(listHTML);
+            $(".delete").on("click", (event) =>{
+                console.log("Button delete");
+                console.log(event.target);
+                sendDELETERequest({ "clave" : event.target.dataset["clave"] });
+            });
+        });
+    }
+
+    function sendPOSTRequest(body_object){
+        $.post("http://localhost:3000/peliculas", body_object , 
+        function(){
+            alert("Pelicula guardada.");
+            getPelicula();
+        });
+    }
+
+    function sendDELETERequest(body_object) {
+        $.ajax({
+            method: "DELETE",
+            url: "http://localhost:3000/peliculas",
+            data: body_object
+            })
+            .done(function( msg ) {
+                alert( "Pelicula eliminada: " + body_object.clave );
+            })
+            .fail(function(msg){
+                alert("Error al eliminar pelicula: " + body_object.clave)
+            }); 
+            getPelicula();
+    }
+
+    function sendPUTRequest(body_object){
+
+        $.ajax({
+            method: "PUT",
+            url: "http://localhost:3000/peliculas",
+            data: body_object
+            })
+            .done(function( msg ) {
+                alert( "Pelicula Editada: " + body_object.claveOld );
+            })
+            .fail(function(msg){
+                alert("Error al editar pelicula: " + body_object.claveOld)
+            }); 
+            getPelicula();
+    }
+
+</script>
+</html>
